@@ -1,49 +1,48 @@
-import os, json, requests
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, CommandHandler, ContextTypes, filters
+from telegram.ext import Updater, MessageHandler, Filters
+import os
+import requests
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-SECRET_KEY = "PRATIGYA-108"
-AUTH_FILE = "authorized.json"
+BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Telegram Bot Token
+SECRET_KEY = os.environ.get("SECRET_KEY")  # Secret Key
 
-def load_auth():
-    if not os.path.exists(AUTH_FILE):
-        return {}
-    return json.load(open(AUTH_FILE))
+def reply(update, context):
+    text = update.message.text
 
-def save_auth(data):
-    json.dump(data, open(AUTH_FILE, "w"))
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔐 Access ke liye Secret Key bhejiye")
-
-async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = str(update.effective_user.id)
-    msg = update.message.text.strip()
-    auth = load_auth()
-
-    if user_id not in auth:
-        if msg == SECRET_KEY:
-            auth[user_id] = True
-            save_auth(auth)
-            await update.message.reply_text(
-                "✅ Access Granted\nMain Pratigya hoon, made by Prashant Pandey."
-            )
-        else:
-            await update.message.reply_text("❌ Galat Secret Key")
+    # Secret key check
+    if not text.startswith(SECRET_KEY):
+        update.message.reply_text("❌ Access Denied. Secret key required.")
         return
 
-    try:
-        r = requests.get(f"https://duckduckgo.com/?q={msg}", timeout=5)
-        answer = r.text[:700]
-    except:
-        answer = "Is prashn ka uttar main apni samajh se de rahi hoon."
+    question = text.replace(SECRET_KEY, "").strip()
 
-    await update.message.reply_text(
-        f"🧠 Pratigya:\n{answer}\n\n— made by Prashant Pandey"
-    )
+    if not question:
+        update.message.reply_text("❓ Question likhiye secret key ke baad")
+        return
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
-app.run_polling()
+    # Simple online research (DuckDuckGo API – free)
+    url = "https://api.duckduckgo.com/"
+    params = {
+        "q": question,
+        "format": "json"
+    }
+
+    r = requests.get(url, params=params).json()
+
+    answer = r.get("AbstractText")
+
+    if answer:
+        update.message.reply_text(answer)
+    else:
+        update.message.reply_text("🤖 Is prashn ka exact answer nahi mila.")
+
+def main():
+    updater = Updater(BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, reply))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
