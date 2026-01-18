@@ -1,10 +1,18 @@
 import os
+import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 from openai import OpenAI
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+OPENAI_KEY = os.environ.get("OPENAI_API_KEY")
+
+client = OpenAI(api_key=OPENAI_KEY)
 
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
@@ -23,16 +31,19 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     )
 
-    ai_reply = response.choices[0].message.content
-    await update.message.reply_text(ai_reply)
+    await update.message.reply_text(
+        response.choices[0].message.content
+    )
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
+async def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
 
-PORT = int(os.environ.get("PORT", 10000))
+    await app.initialize()
+    await app.start()
+    await app.bot.set_webhook("https://pratigya-ai.onrender.com")
+    await app.stop()  # Render webhook ke liye required
+    await asyncio.Event().wait()
 
-app.run_webhook(
-    listen="0.0.0.0",
-    port=PORT,
-    webhook_url="https://pratigya-ai.onrender.com"
-)
+if __name__ == "__main__":
+    asyncio.run(main())
