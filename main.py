@@ -1,48 +1,19 @@
-from telegram.ext import Updater, MessageHandler, Filters
 import os
-import requests
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Telegram Bot Token
-SECRET_KEY = os.environ.get("SECRET_KEY")  # Secret Key
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-def reply(update, context):
-    text = update.message.text
+async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Pratigya AI online hai 🙏")
 
-    # Secret key check
-    if not text.startswith(SECRET_KEY):
-        update.message.reply_text("❌ Access Denied. Secret key required.")
-        return
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
 
-    question = text.replace(SECRET_KEY, "").strip()
+PORT = int(os.environ.get("PORT", 10000))
 
-    if not question:
-        update.message.reply_text("❓ Question likhiye secret key ke baad")
-        return
-
-    # Simple online research (DuckDuckGo API – free)
-    url = "https://api.duckduckgo.com/"
-    params = {
-        "q": question,
-        "format": "json"
-    }
-
-    r = requests.get(url, params=params).json()
-
-    answer = r.get("AbstractText")
-
-    if answer:
-        update.message.reply_text(answer)
-    else:
-        update.message.reply_text("🤖 Is prashn ka exact answer nahi mila.")
-
-def main():
-    updater = Updater(BOT_TOKEN, use_context=True)
-    dp = updater.dispatcher
-
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, reply))
-
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == "__main__":
-    main()
+app.run_webhook(
+    listen="0.0.0.0",
+    port=PORT,
+    webhook_url="https://pratigya-ai.onrender.com"
+)
