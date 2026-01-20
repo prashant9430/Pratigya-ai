@@ -10,6 +10,8 @@ from telegram.ext import (
 # ========== ENV ==========
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 CONTACT_NUMBER = os.getenv("CONTACT_NUMBER")
@@ -50,18 +52,25 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== AI ==========
 def get_emotional_reply(text):
+    system_prompt = (
+        "You are Pratigya AI, a sweet emotional intelligent girl. "
+        "You talk in soft Hindi/Hinglish. "
+        "You reply warmly, politely and emotionally like a real human."
+    )
+
     try:
-        res = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a friendly emotional Hindi AI girl."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text}
             ],
             max_tokens=150
         )
-        return res.choices[0].message["content"]
-    except:
-        return "😅 Thoda issue aa gaya, phir se bolo."
+        return response.choices[0].message.content
+    except Exception as e:
+        print("OpenAI Error:", e)
+        return "😅 Thodi dikkat aa rahi hai, thodi der baad try karo"
 
 # ========== CHAT ==========
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
