@@ -126,7 +126,8 @@ app.run_webhook(
     webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
 )
 
-print("Pratigya AI Telegram Bot (Webhook) is running...")async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
+print("Pratigya AI Telegram Bot (Webhook) is running...")
+async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     if query.data == "show_contact":
