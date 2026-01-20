@@ -10,21 +10,20 @@ from telegram.ext import (
 # ========== ENV ==========
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-client = OpenAI(api_key=OPENAI_API_KEY)
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 CONTACT_NUMBER = os.getenv("CONTACT_NUMBER")
 PHOTO_URL = os.getenv("PHOTO_URL")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-openai.api_key = OPENAI_API_KEY
+# ========== OPENAI CLIENT ==========
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ========== START ==========
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = (
-        "Hi, I am Pratigya-AI 🍃\n"
-        "Made by PRASHANT PANDEY\n"
+        "Hi, I am *Pratigya-AI* 🍃\n\n"
+        "Made by *Prashant Pandey*\n"
         "Insta: @_prashant__pandey_"
     )
 
@@ -50,7 +49,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
             caption=f"📞 Contact: {CONTACT_NUMBER}"
         )
 
-# ========== AI ==========
+# ========== AI REPLY (FIXED) ==========
 def get_emotional_reply(text):
     system_prompt = (
         "You are Pratigya AI, a sweet emotional intelligent girl. "
@@ -59,22 +58,23 @@ def get_emotional_reply(text):
     )
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text}
-            ],
-            max_tokens=150
+            ]
         )
-        return response.choices[0].message.content
+        return response.output_text
+
     except Exception as e:
         print("OpenAI Error:", e)
         return "😅 Thodi dikkat aa rahi hai, thodi der baad try karo"
 
 # ========== CHAT ==========
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply = get_emotional_reply(update.message.text)
+    user_text = update.message.text
+    reply = get_emotional_reply(user_text)
     await update.message.reply_text(reply)
 
 # ========== WEATHER ==========
@@ -111,6 +111,7 @@ app.add_handler(CommandHandler("news", news))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
 
 PORT = int(os.environ.get("PORT", 10000))
+
 app.run_webhook(
     listen="0.0.0.0",
     port=PORT,
