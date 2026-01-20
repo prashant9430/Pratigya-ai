@@ -1,54 +1,60 @@
+from flask import Flask, request
+import requests
 import os
-import asyncio
-from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    ContextTypes,
-    MessageHandler,
-    filters,
-)
-from openai import OpenAI
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-OPENAI_KEY = os.environ.get("OPENAI_API_KEY")
+app = Flask(__name__)
 
-client = OpenAI(api_key=OPENAI_KEY)
+# 🔑 ENV variables (Render me set karna)
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")      # PRAKRITI-AI_VERIFY
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")      # Meta access token
+PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
+# ---------------- VERIFY WEBHOOK ----------------
+@app.route("/webhook", methods=["GET"])
+def verify():
+    if request.args.get("hub.verify_token") == VERIFY_TOKEN:
+        return request.args.get("hub.challenge")
+    return "Invalid token", 403
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": "तुम Pratigya AI हो, जिसे Prashant Pandey ने बनाया है। सरल हिन्दी में उत्तर दो।"
-            },
-            {
-                "role": "user",
-                "content": user_text
-            }
-        ]
-    )
 
-    await update.message.reply_text(
-        response.choices[0].message.content
-    )
+# ---------------- RECEIVE MESSAGE ----------------
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    data = request.json
+    print("INCOMING:", data)
 
-async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
+    try:
+        message = data["entry"][0]["changes"][0]["value"]["messages"][0]
+        sender = message["from"]
+        text = message["text"]["body"]
 
-    await app.initialize()
-    await app.start()
-    await app.bot.set_webhook("https://pratigya-ai.onrender.com")
-    await app.stop()  # Render webhook ke liye required
-    await asyncio.Event().wait()
+        reply = f"🙏 Namaste!\nMain *Prakriti AI* hoon 🌱\nAapne likha: {text}"
+
+        send_message(sender, reply)
+
+    except Exception as e:
+        print("ERROR:", e)
+
+    return "ok", 200
+
+
+# ---------------- SEND MESSAGE ----------------
+def send_message(to, text):
+    url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {"body": text}
+    }
+
+    r = requests.post(url, json=payload, headers=headers)
+    print("SEND STATUS:", r.text)
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
-    import os
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
