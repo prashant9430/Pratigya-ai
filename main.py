@@ -210,7 +210,7 @@ app.run_webhook(
 )
 
 print("Pratigya AI Telegram Bot (Webhook) is running...")        [InlineKeyboardButton("📸 Follow Insta", url="https://www.instagram.com/_prashant__pandey/")]
-    ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_photo(photo=PHOTO_URL, caption=message, parse_mode="Markdown", reply_markup=reply_markup)
 
