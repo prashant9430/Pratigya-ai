@@ -59,9 +59,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📸 Follow Insta", url="https://www.instagram.com/_prashant__pandey/")]
     ]
 
+    message = "Hi, I am *Pratigya-AI* 🍃\nA Human-like AI Friend."
+
     await update.message.reply_photo(
         photo=PHOTO_URL,
-        caption="Hi, I am *Pratigya-AI* 🍃\nA Human-like AI Friend.",
+        caption=message,
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -178,7 +180,7 @@ app.run_webhook(
     webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
 )
 
-print("✅ Pratigya AI Bot is LIVE (Ultra Human Mode)")        caption=message,
+print("✅ Pratigya AI Bot is LIVE (Ultra Human Mode)")
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
