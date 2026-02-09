@@ -65,26 +65,30 @@ def ai_reply(user_id, text):
     name = user_names.get(user_id, "")
 
     prompt = f"""
-You are Pratigya, a real human-like girl chatting on Telegram.
-Talk in soft Hindi/Hinglish like a caring friend.
+You are Pratigya, a human-like AI friend chatting on Telegram.
+Talk in natural Hindi/Hinglish like a caring person.
 
 User name: {name}
 Recent chats:
 {memory}
+
+User: {text}
+Pratigya:
 """
 
     try:
-        r = client.responses.create(
-            model="gpt-4.1-mini",
-            input=[
+        r = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": text}
             ]
         )
-        return r.output[0].content[0].text.strip()
+        return r.choices[0].message.content.strip()
+
     except Exception as e:
-        print(e)
-        return "Thoda sa issue aa gaya… 🙂"
+        print("OpenAI Error:", e)
+        return "Network thoda slow hai… ek sec 🙂"
 
 # ===== CHAT =====
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
