@@ -79,8 +79,8 @@ Pratigya:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        print("Gemini Error:", e)
-        return "Network thoda slow hai… ek sec 🙂"
+    print("Gemini Real Error:", e)
+    return str(e)
 
 # ===== CHAT =====
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
