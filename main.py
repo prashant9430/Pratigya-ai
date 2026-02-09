@@ -2,8 +2,7 @@ import os
 import requests
 import asyncio
 from datetime import datetime
-import google.generativeai as genai
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from google import genai
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, ContextTypes, filters
@@ -19,8 +18,10 @@ PHOTO_URL = os.getenv("PHOTO_URL")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 # ===== GEMINI SETUP =====
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+from google import genai
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 # ===== MEMORY =====
 user_memory = {}
