@@ -1,39 +1,36 @@
 import os
-import asyncio
 import requests
+import asyncio
 from datetime import datetime
 import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
+    MessageHandler, ContextTypes, filters
+)
 
 # ===== ENV =====
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-PHOTO_URL = os.getenv("PHOTO_URL")
-CONTACT_NUMBER = os.getenv("CONTACT_NUMBER")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+CONTACT_NUMBER = os.getenv("CONTACT_NUMBER")
+PHOTO_URL = os.getenv("PHOTO_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
+# ===== GEMINI SETUP =====
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-pro")
 
 # ===== MEMORY =====
-memory = {}
-names = {}
+user_memory = {}
 
-def remember(uid, text):
-    memory.setdefault(uid, []).append(text)
+def save_memory(user_id, user, bot):
+    user_memory.setdefault(user_id, []).append(f"User: {user}")
+    user_memory[user_id].append(f"Pratigya: {bot}")
 
-def last_msgs(uid):
-    return "\n".join(memory.get(uid, [])[-6:])
-
-def extract_name(text):
-    t = text.lower()
-    for k in ["my name is", "i am", "i'm", "mai", "main"]:
-        if k in t:
-            return t.split(k)[-1].strip().split()[0].capitalize()
-    return None
+def last_memory(user_id):
+    return "\n".join(user_memory.get(user_id, [])[-6:])
 
 # ===== START =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -57,19 +54,17 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_caption(caption=f"📞 Contact: {CONTACT_NUMBER}")
 
 # ===== AI REPLY =====
-def ai_reply(uid, text):
-    chat_memory = last_msgs(uid)
-    name = names.get(uid, "")
+def ai_reply(user_id, text, name):
+    memory = last_memory(user_id)
 
     prompt = f"""
-You are Pratigya, a sweet human-like girl chatting on Telegram.
-Talk in soft Hindi/Hinglish like a real caring friend.
-Never sound like AI.
+You are Pratigya, a human-like AI friend chatting on Telegram.
+Talk in soft Hindi/Hinglish like a caring human.
 
 User name: {name}
 
 Recent chats:
-{chat_memory}
+{memory}
 
 User: {text}
 Pratigya:
@@ -77,28 +72,24 @@ Pratigya:
 
     try:
         response = model.generate_content(prompt)
-        return response.text.strip()
+        reply = response.text.strip()
+        save_memory(user_id, text, reply)
+        return reply
+
     except Exception as e:
-    print("Gemini Real Error:", e)
-    return str(e)
+        print("Gemini Real Error:", e)
+        return str(e)
 
 # ===== CHAT =====
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.message.from_user.id
+    user_id = update.message.from_user.id
+    name = update.message.from_user.first_name
     text = update.message.text
-
-    name = extract_name(text)
-    if name:
-        names[uid] = name
-
-    remember(uid, text)
 
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
     await asyncio.sleep(2)
 
-    reply = ai_reply(uid, text)
-    remember(uid, reply)
-
+    reply = ai_reply(user_id, text, name)
     await update.message.reply_text(reply)
 
 # ===== WEATHER =====
@@ -137,4 +128,4 @@ app.run_webhook(
     webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
 )
 
-print("✅ Pratigya AI Bot is LIVE (Gemini Mode)")
+print("✅ Pratigya AI Bot is LIVE with Gemini")
