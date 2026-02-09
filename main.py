@@ -79,16 +79,15 @@ Pratigya:
 
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt
         )
-
         reply = response.text
         save_memory(user_id, text, reply)
         return reply
 
     except Exception as e:
-        print("Gemini Real Error:", e)
+        print("Gemini Error:", e)
         return str(e)
 
 # ===== CHAT =====
