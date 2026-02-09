@@ -78,8 +78,12 @@ Pratigya:
 """
 
     try:
-        response = model.generate_content(prompt)
-        reply = response.text.strip()
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
+
+        reply = response.text
         save_memory(user_id, text, reply)
         return reply
 
