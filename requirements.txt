@@ -1,5 +1,5 @@
 python-telegram-bot[webhooks]==20.7
-google-genai
+google-genai==0.3.0
 requests
 gspread
 oauth2client
