@@ -1,41 +1,38 @@
 import os
-import requests
 import asyncio
+import requests
 from datetime import datetime
-from openai import OpenAI
+import google.generativeai as genai
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
-    MessageHandler, ContextTypes, filters
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 
 # ===== ENV =====
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+PHOTO_URL = os.getenv("PHOTO_URL")
+CONTACT_NUMBER = os.getenv("CONTACT_NUMBER")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-CONTACT_NUMBER = os.getenv("CONTACT_NUMBER")
-PHOTO_URL = os.getenv("PHOTO_URL")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ===== MEMORY =====
-user_memory = {}
-user_names = {}
-greeted_today = {}
+memory = {}
+names = {}
 
-def remember(user_id, text):
-    user_memory.setdefault(user_id, []).append(text)
+def remember(uid, text):
+    memory.setdefault(uid, []).append(text)
 
-def last_memory(user_id):
-    return "\n".join(user_memory.get(user_id, [])[-5:])
+def last_msgs(uid):
+    return "\n".join(memory.get(uid, [])[-6:])
 
 def extract_name(text):
     t = text.lower()
-    for key in ["my name is", "i am", "i'm", "mai", "main"]:
-        if key in t:
-            return t.split(key)[-1].strip().split()[0].capitalize()
+    for k in ["my name is", "i am", "i'm", "mai", "main"]:
+        if k in t:
+            return t.split(k)[-1].strip().split()[0].capitalize()
     return None
 
 # ===== START =====
@@ -60,61 +57,47 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await q.edit_message_caption(caption=f"📞 Contact: {CONTACT_NUMBER}")
 
 # ===== AI REPLY =====
-def ai_reply(user_id, text):
-    memory = last_memory(user_id)
-    name = user_names.get(user_id, "")
+def ai_reply(uid, text):
+    chat_memory = last_msgs(uid)
+    name = names.get(uid, "")
 
     prompt = f"""
-You are Pratigya, a human-like AI friend chatting on Telegram.
-Talk in natural Hindi/Hinglish like a caring person.
+You are Pratigya, a sweet human-like girl chatting on Telegram.
+Talk in soft Hindi/Hinglish like a real caring friend.
+Never sound like AI.
 
 User name: {name}
+
 Recent chats:
-{memory}
+{chat_memory}
 
 User: {text}
 Pratigya:
 """
 
     try:
-        r = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": text}
-            ]
-        )
-        return r.choices[0].message.content.strip()
-
+        response = model.generate_content(prompt)
+        return response.text.strip()
     except Exception as e:
-        print("OpenAI Error:", e)
+        print("Gemini Error:", e)
         return "Network thoda slow hai… ek sec 🙂"
 
 # ===== CHAT =====
 async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+    uid = update.message.from_user.id
     text = update.message.text
-    today = datetime.now().date()
 
-    # name save
     name = extract_name(text)
     if name:
-        user_names[user_id] = name
+        names[uid] = name
 
-    # greet once daily
-    if greeted_today.get(user_id) != today:
-        hour = datetime.now().hour
-        greet = "Good Morning ☀️" if hour < 12 else "Good Night 🌙"
-        await update.message.reply_text(greet)
-        greeted_today[user_id] = today
-
-    remember(user_id, text)
+    remember(uid, text)
 
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
     await asyncio.sleep(2)
 
-    reply = ai_reply(user_id, text)
-    remember(user_id, reply)
+    reply = ai_reply(uid, text)
+    remember(uid, reply)
 
     await update.message.reply_text(reply)
 
@@ -154,4 +137,4 @@ app.run_webhook(
     webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
 )
 
-print("✅ Pratigya AI Bot is LIVE")
+print("✅ Pratigya AI Bot is LIVE (Gemini Mode)")
